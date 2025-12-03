@@ -172,6 +172,17 @@ func (s *Server) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req 
 					WorkDoneProgress: false,
 				},
 			},
+			ExecuteCommandProvider: &lsp.ExecuteCommandOptions{
+				Commands: []string{
+					CommandExecuteQuery,
+					CommandShowDatabases,
+					CommandShowSchemas,
+					CommandShowConnections,
+					CommandSwitchDatabase,
+					CommandSwitchConnection,
+					CommandShowTables,
+				},
+			},
 		},
 	}
 
