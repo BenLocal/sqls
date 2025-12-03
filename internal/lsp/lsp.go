@@ -78,7 +78,10 @@ type CodeActionOptions struct {
 	CodeActionKinds []CodeActionKind
 }
 
-type CodeLensOptions struct{}
+type CodeLensOptions struct {
+	ResolveProvider bool `json:"resolveProvider,omitempty"`
+	WorkDoneProgressOptions
+}
 
 type DocumentOnTypeFormattingOptions struct{}
 
@@ -292,6 +295,19 @@ type CodeActionParams struct {
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 	Range        Range                  `json:"range"`
 	Context      CodeActionContext      `json:"context"`
+}
+
+type CodeLensParams struct {
+	WorkDoneProgressParams
+	PartialResultParams
+
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}
+
+type CodeLens struct {
+	Range   Range       `json:"range"`
+	Command *Command    `json:"command,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
 }
 
 // https://microsoft.github.io/language-server-protocol/specifications/specification-3-14/#workspace_executeCommand
