@@ -44,8 +44,9 @@ func (s *Server) handleTextDocumentCodeLens(ctx context.Context, conn *jsonrpc2.
 		codeLens = append(codeLens, lsp.CodeLens{
 			Range: r,
 			Command: &lsp.Command{
-				Title:   "Execute Query",
-				Command: CommandExecuteQuery,
+				Title:     "Execute Query",
+				Command:   CommandExecuteQuery,
+				Arguments: []interface{}{params.TextDocument.URI},
 			},
 		})
 	}
