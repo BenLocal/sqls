@@ -38,12 +38,12 @@ func (s *Server) handleTextDocumentCodeLens(ctx context.Context, conn *jsonrpc2.
 
 		r := lsp.Range{
 			Start: lsp.Position{
-				Line:      stmt.Pos().Line + 1,
-				Character: stmt.Pos().Col + 1,
+				Line:      stmt.Pos().Line,
+				Character: stmt.Pos().Col,
 			},
 			End: lsp.Position{
-				Line:      stmt.End().Line + 1,
-				Character: stmt.End().Col + 1,
+				Line:      stmt.End().Line,
+				Character: stmt.End().Col,
 			},
 		}
 		codeLens = append(codeLens, lsp.CodeLens{
