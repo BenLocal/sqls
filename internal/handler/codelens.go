@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/sourcegraph/jsonrpc2"
 	"github.com/sqls-server/sqls/internal/lsp"
@@ -31,14 +32,18 @@ func (s *Server) handleTextDocumentCodeLens(ctx context.Context, conn *jsonrpc2.
 
 	codeLens := []lsp.CodeLens{}
 	for _, stmt := range stmts {
+		if strings.TrimSpace(stmt.String()) == "" {
+			continue
+		}
+
 		r := lsp.Range{
 			Start: lsp.Position{
-				Line:      stmt.Pos().Line,
-				Character: stmt.Pos().Col,
+				Line:      stmt.Pos().Line + 1,
+				Character: stmt.Pos().Col + 1,
 			},
 			End: lsp.Position{
-				Line:      stmt.End().Line,
-				Character: stmt.End().Col,
+				Line:      stmt.End().Line + 1,
+				Character: stmt.End().Col + 1,
 			},
 		}
 		codeLens = append(codeLens, lsp.CodeLens{
