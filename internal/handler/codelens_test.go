@@ -1,61 +1,101 @@
 package handler
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/sqls-server/sqls/internal/lsp"
 )
 
-func TestHandleTextDocumentCodeLens(t *testing.T) {
-	s := `SELECT
-    *
+type codeLensTestCase struct {
+	name string
+	text string
+	want []lsp.CodeLens
+}
+
+var codeLensTestCases = []codeLensTestCase{
+	{
+		name: "code lens with multiple statements",
+		text: `SELECT
+	*
 FROM
-    USER;
+	USER;
 SELECT
-    *
+	*
 FROM
-    USER
+	USER
 WHERE
-    id = 1;
-`
-	params := lsp.CodeActionParams{
-		TextDocument: lsp.TextDocumentIdentifier{
-			URI: "file:///test.sql",
+	id = 1;
+`,
+		want: []lsp.CodeLens{
+			{
+				Range: lsp.Range{
+					Start: lsp.Position{Line: 0, Character: 0},
+					End:   lsp.Position{Line: 3, Character: 9},
+				},
+			},
+			{
+				Range: lsp.Range{
+					Start: lsp.Position{Line: 4, Character: 0},
+					End:   lsp.Position{Line: 9, Character: 11},
+				},
+			},
 		},
-	}
-	codeLens, err := getCodeLens(s, params)
-	if err != nil {
-		t.Fatal(err)
-	}
+	},
+	{
+		name: "code lens with empty statement",
+		text: `SELECT
+	*
+FROM
+	USER;
+`,
+		want: []lsp.CodeLens{
+			{
+				Range: lsp.Range{
+					Start: lsp.Position{Line: 0, Character: 0},
+					End:   lsp.Position{Line: 3, Character: 9},
+				},
+			},
+		},
+	}, {
+		name: "code lens with one line",
+		text: `SELECT * from user; select * from user1;`,
+		want: []lsp.CodeLens{
+			{
+				Range: lsp.Range{
+					Start: lsp.Position{Line: 0, Character: 0},
+					End:   lsp.Position{Line: 0, Character: 19},
+				},
+			},
+			{
+				Range: lsp.Range{
+					Start: lsp.Position{Line: 0, Character: 20},
+					End:   lsp.Position{Line: 0, Character: 40},
+				},
+			},
+		},
+	},
+}
 
-	if len(codeLens) != 2 {
-		t.Fatalf("expected 2 code lenses, got %d", len(codeLens))
-	}
-	f := codeLens[0]
-	if f.Range.Start.Line != 0 {
-		t.Fatalf("expected start line 0, got %d", f.Range.Start.Line)
-	}
-	if f.Range.Start.Character != 0 {
-		t.Fatalf("expected start character 0, got %d", f.Range.Start.Character)
-	}
-	if f.Range.End.Line != 3 {
-		t.Fatalf("expected end line 3, got %d", f.Range.End.Line)
-	}
-	if f.Range.End.Character != 9 {
-		t.Fatalf("expected end character 9, got %d", f.Range.End.Character)
-	}
-
-	second := codeLens[1]
-	if second.Range.Start.Line != 4 {
-		t.Fatalf("expected start line 4, got %d", second.Range.Start.Line)
-	}
-	if second.Range.Start.Character != 0 {
-		t.Fatalf("expected start character 0, got %d", second.Range.Start.Character)
-	}
-	if second.Range.End.Line != 9 {
-		t.Fatalf("expected end line 9, got %d", second.Range.End.Line)
-	}
-	if second.Range.End.Character != 11 {
-		t.Fatalf("expected end character 11, got %d", second.Range.End.Character)
+func TestHandleTextDocumentCodeLens(t *testing.T) {
+	for _, tt := range codeLensTestCases {
+		t.Run(tt.name, func(t *testing.T) {
+			codeLens, err := getCodeLens(tt.text, lsp.CodeActionParams{
+				TextDocument: lsp.TextDocumentIdentifier{
+					URI: "file:///test.sql",
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(codeLens) != len(tt.want) {
+				t.Fatalf("[%s] expected %d code lenses, got %d", tt.name, len(tt.want), len(codeLens))
+			}
+			for i, lens := range codeLens {
+				if !reflect.DeepEqual(lens.Range, tt.want[i].Range) {
+					t.Fatalf("[%s] expected code lens %d to be %v, got %v", tt.name, i, tt.want[i].Range, lens.Range)
+				}
+			}
+		})
 	}
 }
