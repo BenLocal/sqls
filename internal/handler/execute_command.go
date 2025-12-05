@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"strconv"
 	"strings"
 
@@ -145,7 +144,6 @@ func (s *Server) executeQuery(ctx context.Context, params lsp.ExecuteCommandPara
 			}
 		}
 	}
-	log.Println("params.Arguments", params.Arguments)
 
 	// extract target query
 	text := f.Text
