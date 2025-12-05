@@ -26,7 +26,7 @@ FROM
 	USER
 WHERE
 	id = 1;
-`,
+	`,
 		want: []lsp.CodeLens{
 			{
 				Range: lsp.Range{
@@ -48,7 +48,7 @@ WHERE
 	*
 FROM
 	USER;
-`,
+	`,
 		want: []lsp.CodeLens{
 			{
 				Range: lsp.Range{
@@ -71,6 +71,47 @@ FROM
 				Range: lsp.Range{
 					Start: lsp.Position{Line: 0, Character: 20},
 					End:   lsp.Position{Line: 0, Character: 40},
+				},
+			},
+		},
+	},
+	{
+		name: "code lens with empty line",
+		text: `SELECT * from user;
+
+select * from user1;`,
+		want: []lsp.CodeLens{
+			{
+				Range: lsp.Range{
+					Start: lsp.Position{Line: 0, Character: 0},
+					End:   lsp.Position{Line: 0, Character: 19},
+				},
+			},
+			{
+				Range: lsp.Range{
+					Start: lsp.Position{Line: 2, Character: 0},
+					End:   lsp.Position{Line: 2, Character: 20},
+				},
+			},
+		},
+	},
+	{
+		name: "code lens with comment",
+		text: `SELECT * from user;
+		 -- comment
+		 -- comment
+select * from user1;`,
+		want: []lsp.CodeLens{
+			{
+				Range: lsp.Range{
+					Start: lsp.Position{Line: 0, Character: 0},
+					End:   lsp.Position{Line: 0, Character: 19},
+				},
+			},
+			{
+				Range: lsp.Range{
+					Start: lsp.Position{Line: 3, Character: 0},
+					End:   lsp.Position{Line: 3, Character: 20},
 				},
 			},
 		},

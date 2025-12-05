@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/sourcegraph/jsonrpc2"
+	"github.com/sqls-server/sqls/ast/astutil"
 	"github.com/sqls-server/sqls/internal/lsp"
+	"github.com/sqls-server/sqls/token"
 )
 
 func (s *Server) handleTextDocumentCodeLens(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (result interface{}, err error) {
@@ -34,8 +35,15 @@ func getCodeLens(text string, params lsp.CodeActionParams) ([]lsp.CodeLens, erro
 	}
 
 	codeLens := []lsp.CodeLens{}
+	emptyMatcher := astutil.NodeMatcher{
+		ExpectTokens: []token.Kind{
+			token.Whitespace,
+			token.Comment,
+			token.MultilineComment,
+		},
+	}
 	for _, stmt := range stmts {
-		if strings.TrimSpace(stmt.String()) == "" {
+		if emptyMatcher.IsMatch(stmt) {
 			continue
 		}
 
@@ -49,15 +57,21 @@ func getCodeLens(text string, params lsp.CodeActionParams) ([]lsp.CodeLens, erro
 		}
 
 		tokens := stmt.GetTokens()
+		hasValidToken := false
 		for _, token := range tokens {
-			if strings.TrimSpace(token.String()) == "" {
+			if emptyMatcher.IsMatch(token) {
 				ss = lsp.Position{
 					Line:      token.End().Line,
 					Character: token.End().Col,
 				}
 			} else {
+				hasValidToken = true
 				break
 			}
+		}
+
+		if !hasValidToken {
+			continue
 		}
 
 		r := lsp.Range{
