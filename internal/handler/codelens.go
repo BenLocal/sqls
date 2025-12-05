@@ -24,7 +24,10 @@ func (s *Server) handleTextDocumentCodeLens(ctx context.Context, conn *jsonrpc2.
 	if !ok {
 		return nil, fmt.Errorf("document not found: %s", params.TextDocument.URI)
 	}
-	text := f.Text
+	return getCodeLens(f.Text, params)
+}
+
+func getCodeLens(text string, params lsp.CodeActionParams) ([]lsp.CodeLens, error) {
 	stmts, err := getStatements(text)
 	if err != nil {
 		return nil, err
@@ -36,22 +39,37 @@ func (s *Server) handleTextDocumentCodeLens(ctx context.Context, conn *jsonrpc2.
 			continue
 		}
 
+		ss := lsp.Position{
+			Line:      stmt.Pos().Line,
+			Character: stmt.Pos().Col,
+		}
+		ee := lsp.Position{
+			Line:      stmt.End().Line,
+			Character: stmt.End().Col,
+		}
+
+		tokens := stmt.GetTokens()
+		for _, token := range tokens {
+			if strings.TrimSpace(token.String()) == "" {
+				ss = lsp.Position{
+					Line:      token.End().Line,
+					Character: token.End().Col,
+				}
+			} else {
+				break
+			}
+		}
+
 		r := lsp.Range{
-			Start: lsp.Position{
-				Line:      stmt.Pos().Line,
-				Character: stmt.Pos().Col,
-			},
-			End: lsp.Position{
-				Line:      stmt.End().Line,
-				Character: stmt.End().Col,
-			},
+			Start: ss,
+			End:   ee,
 		}
 		codeLens = append(codeLens, lsp.CodeLens{
 			Range: r,
 			Command: &lsp.Command{
 				Title:     "Execute Query",
 				Command:   CommandExecuteQuery,
-				Arguments: []interface{}{params.TextDocument.URI},
+				Arguments: []interface{}{params.TextDocument.URI, "", r},
 			},
 		})
 	}
