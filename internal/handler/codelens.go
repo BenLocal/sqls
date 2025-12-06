@@ -35,18 +35,12 @@ func getCodeLens(text string, params lsp.CodeActionParams) ([]lsp.CodeLens, erro
 	}
 
 	codeLens := []lsp.CodeLens{}
-	emptyMatcher := astutil.NodeMatcher{
+	keywordMatcher := astutil.NodeMatcher{
 		ExpectTokens: []token.Kind{
-			token.Whitespace,
-			token.Comment,
-			token.MultilineComment,
+			token.SQLKeyword,
 		},
 	}
 	for _, stmt := range stmts {
-		if emptyMatcher.IsMatch(stmt) {
-			continue
-		}
-
 		ss := lsp.Position{
 			Line:      stmt.Pos().Line,
 			Character: stmt.Pos().Col,
@@ -59,12 +53,11 @@ func getCodeLens(text string, params lsp.CodeActionParams) ([]lsp.CodeLens, erro
 		tokens := stmt.GetTokens()
 		hasValidToken := false
 		for _, token := range tokens {
-			if emptyMatcher.IsMatch(token) {
+			if keywordMatcher.IsMatch(token) {
 				ss = lsp.Position{
-					Line:      token.End().Line,
-					Character: token.End().Col,
+					Line:      token.Pos().Line,
+					Character: token.Pos().Col,
 				}
-			} else {
 				hasValidToken = true
 				break
 			}
