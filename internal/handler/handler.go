@@ -129,6 +129,8 @@ func (s *Server) handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.
 		return s.handleDefinition(ctx, conn, req)
 	case "textDocument/typeDefinition":
 		return s.handleDefinition(ctx, conn, req)
+	case "textDocument/codeLens":
+		return s.handleTextDocumentCodeLens(ctx, conn, req)
 	case "window/showMessage":
 		return
 	}
@@ -164,6 +166,23 @@ func (s *Server) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req 
 			DocumentFormattingProvider:      true,
 			DocumentRangeFormattingProvider: true,
 			RenameProvider:                  true,
+			CodeLensProvider: &lsp.CodeLensOptions{
+				ResolveProvider: true,
+				WorkDoneProgressOptions: lsp.WorkDoneProgressOptions{
+					WorkDoneProgress: false,
+				},
+			},
+			ExecuteCommandProvider: &lsp.ExecuteCommandOptions{
+				Commands: []string{
+					CommandExecuteQuery,
+					CommandShowDatabases,
+					CommandShowSchemas,
+					CommandShowConnections,
+					CommandSwitchDatabase,
+					CommandSwitchConnection,
+					CommandShowTables,
+				},
+			},
 		},
 	}
 

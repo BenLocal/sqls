@@ -135,6 +135,16 @@ func (s *Server) executeQuery(ctx context.Context, params lsp.ExecuteCommandPara
 		}
 	}
 
+	if len(params.Arguments) > 2 {
+		argBytes, err := json.Marshal(params.Arguments[2])
+		if err == nil {
+			var rng lsp.Range
+			if err := json.Unmarshal(argBytes, &rng); err == nil {
+				params.Range = &rng
+			}
+		}
+	}
+
 	// extract target query
 	text := f.Text
 	if params.Range != nil {
