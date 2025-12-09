@@ -265,6 +265,8 @@ func (s *Server) query(ctx context.Context, query string, showType ShowType) (st
 			return "", err
 		}
 		return buf.String(), nil
+	case ShowNone:
+		fallthrough
 	default:
 		table := tablewriter.NewWriter(buf)
 		table.SetHeader(columns)
@@ -307,13 +309,14 @@ func (s *Server) exec(ctx context.Context, query string, showType ShowType) (str
 			return "", err
 		}
 		return buf.String(), nil
+	case ShowVertical, ShowNone:
+		fallthrough
 	default:
 		fmt.Fprintf(buf, "Query OK, %d row affected", rowsAffected)
 		fmt.Fprintln(buf, "")
 		fmt.Fprintln(buf, "")
 		return buf.String(), nil
 	}
-
 }
 
 func (s *Server) showDatabases(ctx context.Context, params lsp.ExecuteCommandParams) (result interface{}, err error) {
