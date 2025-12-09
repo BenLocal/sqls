@@ -29,6 +29,14 @@ const (
 	CommandShowTables       = "showTables"
 )
 
+type ShowType int
+
+const (
+	ShowNone ShowType = iota
+	ShowVertical
+	ShowJson
+)
+
 func (s *Server) handleTextDocumentCodeAction(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (result interface{}, err error) {
 	if req.Params == nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeInvalidParams}
@@ -125,12 +133,15 @@ func (s *Server) executeQuery(ctx context.Context, params lsp.ExecuteCommandPara
 		return nil, fmt.Errorf("document not found, %q", uri)
 	}
 
-	showVertical := false
+	showType := ShowNone
 	if len(params.Arguments) > 1 {
-		showVerticalFlag, ok := params.Arguments[1].(string)
+		flag, ok := params.Arguments[1].(string)
 		if ok {
-			if showVerticalFlag == "-show-vertical" {
-				showVertical = true
+			switch flag {
+			case "-show-vertical":
+				showType = ShowVertical
+			case "-show-json":
+				showType = ShowJson
 			}
 		}
 	}
@@ -170,13 +181,13 @@ func (s *Server) executeQuery(ctx context.Context, params lsp.ExecuteCommandPara
 		}
 
 		if _, isQuery := database.QueryExecType(query, ""); isQuery {
-			res, err := s.query(ctx, query, showVertical)
+			res, err := s.query(ctx, query, showType)
 			if err != nil {
 				return nil, err
 			}
 			fmt.Fprintln(buf, res)
 		} else {
-			res, err := s.exec(ctx, query, showVertical)
+			res, err := s.exec(ctx, query, showType)
 			if err != nil {
 				return nil, err
 			}
@@ -213,7 +224,7 @@ func extractRangeText(text string, startLine, startChar, endLine, endChar int) s
 	return writer.String()
 }
 
-func (s *Server) query(ctx context.Context, query string, vertical bool) (string, error) {
+func (s *Server) query(ctx context.Context, query string, showType ShowType) (string, error) {
 	repo, err := s.newDBRepository(ctx)
 	if err != nil {
 		return "", err
@@ -232,14 +243,29 @@ func (s *Server) query(ctx context.Context, query string, vertical bool) (string
 	}
 
 	buf := new(bytes.Buffer)
-	if vertical {
+	switch showType {
+	case ShowVertical:
 		table := newVerticalTableWriter(buf)
 		table.setHeaders(columns)
 		for _, stringRow := range stringRows {
 			table.appendRow(stringRow)
 		}
 		table.render()
-	} else {
+	case ShowJson:
+		type showTableJson struct {
+			Columns []string   `json:"columns"`
+			Rows    [][]string `json:"rows"`
+		}
+		j := showTableJson{
+			Columns: columns,
+			Rows:    stringRows,
+		}
+		err = json.NewEncoder(buf).Encode(j)
+		if err != nil {
+			return "", err
+		}
+		return buf.String(), nil
+	default:
 		table := tablewriter.NewWriter(buf)
 		table.SetHeader(columns)
 		for _, stringRow := range stringRows {
@@ -253,7 +279,7 @@ func (s *Server) query(ctx context.Context, query string, vertical bool) (string
 	return buf.String(), nil
 }
 
-func (s *Server) exec(ctx context.Context, query string, vertical bool) (string, error) {
+func (s *Server) exec(ctx context.Context, query string, showType ShowType) (string, error) {
 	repo, err := s.newDBRepository(ctx)
 	if err != nil {
 		return "", err
@@ -268,10 +294,26 @@ func (s *Server) exec(ctx context.Context, query string, vertical bool) (string,
 	}
 
 	buf := new(bytes.Buffer)
-	fmt.Fprintf(buf, "Query OK, %d row affected", rowsAffected)
-	fmt.Fprintln(buf, "")
-	fmt.Fprintln(buf, "")
-	return buf.String(), nil
+	switch showType {
+	case ShowJson:
+		type showExecJson struct {
+			RowsAffected int64 `json:"rows_affected"`
+		}
+		j := showExecJson{
+			RowsAffected: rowsAffected,
+		}
+		err = json.NewEncoder(buf).Encode(j)
+		if err != nil {
+			return "", err
+		}
+		return buf.String(), nil
+	default:
+		fmt.Fprintf(buf, "Query OK, %d row affected", rowsAffected)
+		fmt.Fprintln(buf, "")
+		fmt.Fprintln(buf, "")
+		return buf.String(), nil
+	}
+
 }
 
 func (s *Server) showDatabases(ctx context.Context, params lsp.ExecuteCommandParams) (result interface{}, err error) {
