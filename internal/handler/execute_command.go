@@ -388,14 +388,20 @@ func (s *Server) showTables(ctx context.Context, params lsp.ExecuteCommandParams
 	if err != nil {
 		return "", err
 	}
+
 	m, err := repo.SchemaTables(ctx)
 	if err != nil {
 		return nil, err
 	}
-	schema, err := repo.CurrentSchema(ctx)
-	if err != nil {
-		return nil, err
+
+	schema, ok := params.Arguments[0].(string)
+	if !ok {
+		schema, err = repo.CurrentSchema(ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	results := []string{}
 	for k, vv := range m {
 		for _, v := range vv {
