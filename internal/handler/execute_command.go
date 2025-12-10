@@ -156,9 +156,30 @@ func (s *Server) executeQuery(ctx context.Context, params lsp.ExecuteCommandPara
 		}
 	}
 
+	// sometime, the cursor point is not in the range of the query
+	cursorPoint := false
+	if len(params.Arguments) > 3 {
+		cursorPoint, ok = params.Arguments[3].(bool)
+		if !ok {
+			cursorPoint = false
+		}
+	}
+
 	// extract target query
 	text := f.Text
-	if params.Range != nil {
+	if cursorPoint {
+		stmts, err := getStatements(text)
+		if err != nil {
+			return nil, err
+		}
+		p := params.Range.Start
+		for _, stmt := range stmts {
+			if stmt.Pos().Line <= p.Line && stmt.Pos().Col <= p.Character && stmt.End().Line >= p.Line && stmt.End().Col >= p.Character {
+				text = stmt.String()
+				break
+			}
+		}
+	} else if params.Range != nil {
 		text = extractRangeText(
 			text,
 			params.Range.Start.Line,
