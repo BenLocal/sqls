@@ -173,11 +173,24 @@ func (s *Server) executeQuery(ctx context.Context, params lsp.ExecuteCommandPara
 			return nil, err
 		}
 		p := params.Range.Start
+		prevText := ""
 		for _, stmt := range stmts {
-			if stmt.Pos().Line <= p.Line && stmt.Pos().Col <= p.Character && stmt.End().Line >= p.Line && stmt.End().Col >= p.Character {
+			s := stmt.Pos()
+			e := stmt.End()
+			if p.Line < s.Line || (p.Line == s.Line && p.Character < s.Col) {
+				if prevText != "" {
+					text = prevText
+				}
+				break
+			}
+			if p.Line < e.Line || (p.Line == e.Line && p.Character < e.Col) {
 				text = stmt.String()
 				break
 			}
+			prevText = stmt.String()
+		}
+		if text == f.Text && prevText != "" {
+			text = prevText
 		}
 	} else if params.Range != nil {
 		text = extractRangeText(
