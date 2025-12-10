@@ -439,7 +439,11 @@ func (s *Server) showTables(ctx context.Context, params lsp.ExecuteCommandParams
 		return nil, err
 	}
 
-	schema, ok := params.Arguments[0].(string)
+	var schema string
+	ok := false
+	if len(params.Arguments) > 0 {
+		schema, ok = params.Arguments[0].(string)
+	}
 	if !ok {
 		schema, err = repo.CurrentSchema(ctx)
 		if err != nil {
