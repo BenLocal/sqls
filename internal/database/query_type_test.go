@@ -77,6 +77,26 @@ func TestQueryExecType(t *testing.T) {
 			wantPrefix:   "DELETE",
 			wantExecType: false,
 		},
+		{
+			name:         "start comment",
+			prefix:       "-- this is a test\nselect * from city",
+			sqlstr:       "",
+			wantPrefix:   "SELECT",
+			wantExecType: true,
+		},
+		{
+			name:         "start block comment",
+			prefix:       "/* this is a test */select * from city",
+			sqlstr:       "",
+			wantPrefix:   "SELECT",
+			wantExecType: true,
+		}, {
+			name:         "start block comment with newline",
+			prefix:       "\n/* this is a test */\nselect * from city",
+			sqlstr:       "",
+			wantPrefix:   "SELECT",
+			wantExecType: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

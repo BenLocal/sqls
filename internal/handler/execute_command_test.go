@@ -110,3 +110,94 @@ func Test_extractRangeText(t *testing.T) {
 		})
 	}
 }
+
+func Test_getStatements(t *testing.T) {
+
+	tests := []struct {
+		name string
+		text string
+		want []string
+	}{
+		{
+			name: "single statement",
+			text: "SELECT * FROM `user` a;",
+			want: []string{
+				"SELECT * FROM `user` a;",
+			},
+		},
+		{
+			name: "multiple statements",
+			text: "SELECT * FROM `user` a;\nSELECT * FROM `user` b;",
+			want: []string{
+				"SELECT * FROM `user` a;",
+				"\nSELECT * FROM `user` b;",
+			},
+		},
+		{
+			name: "multiple statements with comments",
+			text: "SELECT * FROM `user` a;\n-- this is a comment\nSELECT * FROM `user` b;",
+			want: []string{
+				"SELECT * FROM `user` a;",
+				"\n-- this is a comment\nSELECT * FROM `user` b;",
+			},
+		},
+		{
+			name: "multiple statements with comments and empty lines",
+			text: "SELECT * FROM `user` a;\n-- this is a comment\n\nSELECT * FROM `user` b;",
+			want: []string{
+				"SELECT * FROM `user` a;",
+				"\n-- this is a comment\n\nSELECT * FROM `user` b;",
+			},
+		},
+		{
+			name: "multiple statements with first statement comment",
+			text: "-- this is a test\nSELECT * FROM `user` a;\n\n-- this is a test\n-- this is a test\ninsert into `user` (id, name, age) values (6, 'test', 10);",
+			want: []string{
+				"-- this is a test\nSELECT * FROM `user` a;",
+				"\n\n-- this is a test\n-- this is a test\ninsert into `user` (id, name, age) values (6, 'test', 10);",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stmts, err := getStatements(tt.text)
+			if err != nil {
+				t.Errorf("getStatements() error = %v", err)
+			}
+			var text string
+			p := lsp.Position{
+				Line:      1,
+				Character: 0,
+			}
+			for _, stmt := range stmts {
+				s := stmt.Pos()
+				e := stmt.End()
+				if p.Line < s.Line || p.Line > e.Line {
+					continue
+				}
+				if p.Line == s.Line && p.Character < s.Col {
+					continue
+				}
+				if p.Line == e.Line && p.Character >= e.Col {
+					continue
+				}
+				text = stmt.String()
+				break
+			}
+
+			if text != tt.want[0] {
+				t.Errorf("text = %q, want %q", text, tt.want[0])
+			}
+
+			if len(stmts) != len(tt.want) {
+				t.Errorf("getStatements() = %v, want %v", len(stmts), len(tt.want))
+			}
+			for i, s := range stmts {
+				if s.String() != tt.want[i] {
+					t.Errorf("getStatements() = %v, want %v", s.String(), tt.want[i])
+				}
+			}
+		})
+	}
+}
