@@ -157,17 +157,17 @@ func (s *Server) executeQuery(ctx context.Context, params lsp.ExecuteCommandPara
 	}
 
 	// sometime, the cursor point is not in the range of the query
-	cursorPoint := false
+	cursorPointer := false
 	if len(params.Arguments) > 3 {
-		cursorPoint, ok = params.Arguments[3].(bool)
+		cursorPointer, ok = params.Arguments[3].(bool)
 		if !ok {
-			cursorPoint = false
+			cursorPointer = false
 		}
 	}
 
 	// extract target query
 	text := f.Text
-	if cursorPoint {
+	if cursorPointer {
 		stmts, err := getStatements(text)
 		if err != nil {
 			return nil, err
