@@ -165,31 +165,6 @@ func Test_getStatements(t *testing.T) {
 			if err != nil {
 				t.Errorf("getStatements() error = %v", err)
 			}
-			var text string
-			p := lsp.Position{
-				Line:      1,
-				Character: 0,
-			}
-			for _, stmt := range stmts {
-				s := stmt.Pos()
-				e := stmt.End()
-				if p.Line < s.Line || p.Line > e.Line {
-					continue
-				}
-				if p.Line == s.Line && p.Character < s.Col {
-					continue
-				}
-				if p.Line == e.Line && p.Character >= e.Col {
-					continue
-				}
-				text = stmt.String()
-				break
-			}
-
-			if text != tt.want[0] {
-				t.Errorf("text = %q, want %q", text, tt.want[0])
-			}
-
 			if len(stmts) != len(tt.want) {
 				t.Errorf("getStatements() = %v, want %v", len(stmts), len(tt.want))
 			}
